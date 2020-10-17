@@ -27,46 +27,46 @@
 
 int read_button_state()
 {
-	return PIND & (_BV(PD_BUTTON));
+    return PIND & (_BV(PD_BUTTON));
 }
 
 int main()
 {
-	sbi(DDRD, PD_DIODE);
-	cbi(DDRD, PD_BUTTON);
+    sbi(DDRD, PD_DIODE);
+    cbi(DDRD, PD_BUTTON);
 
-	Button button;
-	State state = State::Blinking;
-	unsigned long timePassed = 0ul;  // in ms
+    Button button;
+    State state = State::Blinking;
+    unsigned long timePassed = 0ul;  // in ms
 
-	while (true)
+    while (true)
     {
-		switch (state)
-		{
-			case State::Blinking:
-				if ((timePassed / 500) % 2)
-					sbi(PORTD, PD_DIODE);
-				else
-					cbi(PORTD, PD_DIODE);
-				break;
+        switch (state)
+        {
+            case State::Blinking:
+                if ((timePassed / 500) % 2)
+                    sbi(PORTD, PD_DIODE);
+                else
+                    cbi(PORTD, PD_DIODE);
+                break;
 
-			case State::On:
-				sbi(PORTD, PD_DIODE);
-				break;
+            case State::On:
+                sbi(PORTD, PD_DIODE);
+                break;
 
-			case State::Off:
-				cbi(PORTD, PD_DIODE);
-				break;
-		}
+            case State::Off:
+                cbi(PORTD, PD_DIODE);
+                break;
+        }
 
-		button.updateState(read_button_state(), timePassed);
+        button.updateState(read_button_state(), timePassed);
 
-		if (button.popWasPressed())
-		{
-			state = nextState(state);
-		}
+        if (button.popWasPressed())
+        {
+            state = nextState(state);
+        }
 
-		timePassed += 1;
-		_delay_ms(1);  // hack, timer should be impl as interrupt
-	}
+        timePassed += 1;
+        _delay_ms(1);  // hack, timer should be impl as interrupt
+    }
 }

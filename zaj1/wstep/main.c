@@ -19,13 +19,13 @@
 
 int main()
 {
-	sbi(DDRD, PD6);
+    sbi(DDRD, PD6);
 
-	while (1)
+    while (1)
     {
-		sbi(PORTD, PD6);
-		_delay_ms(500);
-		cbi(PORTD, PD6);
-		_delay_ms(500);
-	}
+        sbi(PORTD, PD6);
+        _delay_ms(500);
+        cbi(PORTD, PD6);
+        _delay_ms(500);
+    }
 }

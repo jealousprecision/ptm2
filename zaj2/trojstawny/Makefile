@@ -1,7 +1,7 @@
 CC=avr-g++
 OBJCOPY=avr-objcopy
 DEVICE=atmega32
-CFLAGS=-std=c++11 -Os -Wall -mmcu=${DEVICE}
+CFLAGS=-std=c++14 -Os -Wall -pedantic -mmcu=${DEVICE}
 
 # list all srcs
 SRCS=main.c LCD_HD44780.c
@@ -30,6 +30,6 @@ depend: ${SRCS}
 	makedepend $^
 # DO NOT DELETE
 
-main.o: /usr/include/stdlib.h /usr/include/string.h /usr/include/stdio.h
-main.o: LCD_HD44780.h
-LCD_HD44780.o: LCD_HD44780.h /usr/include/stdio.h
+main.o: GLOBAL.H /usr/include/stdlib.h /usr/include/string.h
+main.o: /usr/include/stdio.h LCD_HD44780.h GLOBAL.h
+LCD_HD44780.o: LCD_HD44780.h GLOBAL.h /usr/include/stdio.h

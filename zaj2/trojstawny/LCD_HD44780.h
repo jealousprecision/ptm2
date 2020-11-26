@@ -19,7 +19,7 @@
 #ifndef LCD_HD44780_H_
 #define LCD_HD44780_H_
 
-//#include "GLOBAL.h"
+#include "GLOBAL.h"
 #include <avr/io.h>
 #include <util/delay.h>
 

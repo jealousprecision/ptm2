@@ -1,5 +1,4 @@
-#define F_CPU 8000000UL
-
+#include "GLOBAL.H"
 #include <avr/io.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,50 +7,17 @@
 
 #include "LCD_HD44780.h"
 
-#ifndef _BV
-#define _BV(bit)				(1<<(bit))
-#endif
+#define FROM_ADC_TO_PV_UNITS(adc_val) ( (int)((adc_val) / 1.023 + 0.5) )
+#define H_IN_PV_UNITS (_h * 10)
 
-#ifndef sbi
-#define sbi(reg,bit)		reg |= (_BV(bit))
-#endif
-
-#ifndef cbi
-#define cbi(reg,bit)		reg &= ~(_BV(bit))
-#endif
-
-int _sp = 600;
-int _pv = 0;
-bool _cv = false;
+int _sp = 600; // (0, 1000)
+int _pv = 400; // (0, 1000)
+bool _cv1 = false;  // heating
+bool _cv2 = false;  // cooling
 int _e = 0;  // (-1000, 1000)
-int _h = 8;  //
+int _h = 8;  // (0, 100)
 
-void wyswietl()
-{
-    char buffer[16];
-    char floatBuffer[8];
-
-    /**********************/
-    /* SP=XX% PV=XX.X%
-    /* H=X%   E=-XX.X%
-    /***********************/
-
-    LCD_HD44780::clear();
-    //LCD_HD44780::writeText("Hello");
-
-
-    //dtostrf(_pv / 10, 2, 1, floatBuffer);
-    sprintf(buffer, "SP=%ld%% PV=%i%%", _sp / 10, _pv / 10);
-    LCD_HD44780::writeText(buffer);
-
-    /*
-    LCD_HD44780::goTo(0, 1);
-    dtostrf(_e / 10, 2, 1, floatBuffer);
-    sprintf(buffer, "H=%i%%   E=%s%%", _h, floatBuffer);
-    LCD_HD44780::writeText(buffer);
-    */
-
-}
+void display();
 
 /*
  *  Denis Firat
@@ -60,39 +26,66 @@ void wyswietl()
 
 int main()
 {
-    DDRD |= 0xff;
-    ADMUX = 0x40;
+    DDRC |= _BV(PC0) | _BV(PC1);
+    DDRB &= ~(_BV(PB4) | _BV(PB5) | _BV(PB6) | _BV(PB7));
+
+    sbi(ADCSRA, ADEN);  // enable ADC
+
+    ADMUX &= ~(_BV(MUX0) | _BV(MUX1) | _BV(MUX2) | _BV(MUX3) | _BV(MUX4));  // select PA0 as analog input
+    sbi(ADMUX, REFS0);  // ADC to measure with respect to AVcc
 
     LCD_HD44780::init();
 
     while (true)
     {
-        if (PINB & _BV(PB4))
-        {
-            _sp = 500;
-        }
+        if (!(PINB & _BV(PB4))) { _sp = 500; }
+        if (!(PINB & _BV(PB5))) { _sp = 400; }
+        if (!(PINB & _BV(PB6))) { _h = 4; }
+        if (!(PINB & _BV(PB7))) { _h = 10; }
 
-        if (PINB & _BV(PB5))
-        {
-            _sp = 400;
-        }
+        sbi(ADCSRA, ADSC);
+        while (ADCSRA & ADSC) {}
 
-        if (PINB & _BV(PB6))
-        {
-            _h = 4;
-        }
-
-        if (PINB & _BV(PB7))
-        {
-            _h = 10;
-        }
-
-        ADCSRA = 0xe0;
-
-        _pv = ADC / 1.023;
+        _pv = FROM_ADC_TO_PV_UNITS(ADC);
         _e = _sp - _pv;
 
-        wyswietl();
-        _delay_ms(250);
+        if (_cv1 && _e < H_IN_PV_UNITS) _cv1 = false;
+        if (!_cv1 && _e >  2 * H_IN_PV_UNITS) _cv1 = true;
+        if (!_cv2 && _e < -2 * H_IN_PV_UNITS) _cv2 = true;
+        if (_cv2 && _e > -1 * H_IN_PV_UNITS) _cv2 = false;
+
+        if (_cv1)
+            sbi(PORTC, PC0);
+        else
+            cbi(PORTC, PC0);
+
+        if (_cv2)
+            sbi(PORTC, PC1);
+        else
+            cbi(PORTC, PC1);
+
+        display();
+        _delay_ms(100);
     }
+}
+
+void display()
+{
+    char buffer[32];
+    char floatBuffer[16];
+
+    /**********************/
+    /* SP=XX% PV=XX.X%
+    /*  H=X%  E=-XX.X%
+    /***********************/
+
+    LCD_HD44780::clear();
+
+    snprintf(buffer, sizeof(buffer), "SP=%i%% PV=%i%%", _sp / 10, _pv / 10);
+    LCD_HD44780::writeText(buffer);
+
+    LCD_HD44780::goTo(0, 1);
+    dtostrf(_e / 10.0, 2, 1, floatBuffer);
+    snprintf(buffer, sizeof(buffer), " H=%i%%  E=%s%%", _h, floatBuffer);
+    LCD_HD44780::writeText(buffer);
 }

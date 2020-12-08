@@ -3,18 +3,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <util/delay.h>
 
 #include "LCD_HD44780.h"
 
 #define FROM_ADC_TO_PV_UNITS(adc_val) ( (int)((adc_val) / 1.023 + 0.5) )
-#define H_IN_PV_UNITS (_h * 10)
 
 int _sp = 600; // (0, 1000)
 int _pv = 600; // (0, 1000)
 bool _cv[2] = {false, false};  // .0 = heating, .1 = cooling
 int _e = 0;  // (-1000, 1000)
 int _h = 8;  // (0, 100)
+
+#define H_IN_PV_UNITS (_h * 10)
 
 void display();
 
@@ -70,14 +72,13 @@ int main()
 
 void display()
 {
-    char buffer[32];
+    char buffer[17];
     char floatBuffer[16];
-    char pvBuffer[16];
 
     LCD_HD44780::clear();
 
-    dtostrf(_pv / 10.0, 2, 1, pvBuffer);
-    snprintf(buffer, sizeof(buffer), "SP=%2i%%  PV=%s%%", _sp / 10, pvBuffer);
+    dtostrf(_pv / 10.0, 2, 1, floatBuffer);
+    snprintf(buffer, sizeof(buffer), "SP=%2i%%  PV=%s%%", _sp / 10, floatBuffer);
     LCD_HD44780::writeText(buffer);
 
     LCD_HD44780::goTo(0, 1);

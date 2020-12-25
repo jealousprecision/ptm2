@@ -12,13 +12,12 @@
 
 int _sp = 600; // (0, 1000)
 int _pv = 600; // (0, 1000)
-//bool _cv[2] = {false, false};  // .0 = heating, .1 = cooling
+int _cv = 50;  // (0, 100)
 int _e = 0;  // (-1000, 1000)
-int _h = 8;  // (0, 100)
-
-#define H_IN_PV_UNITS (_h * 10)
+int _xp = 20; // (0, 100)
 
 void display();
+int clamp(int min, int val, int max);
 
 /*
  *  Denis Firat
@@ -27,7 +26,7 @@ void display();
 
 int main()
 {
-    DDRC |= _BV(PC0) | _BV(PC1);
+    DDRC |= _BV(PC0);
     DDRB &= ~(_BV(PB4) | _BV(PB5) | _BV(PB6) | _BV(PB7));
 
     sbi(ADCSRA, ADEN);  // enable ADC
@@ -37,33 +36,42 @@ int main()
 
     LCD_HD44780::init();
 
-    int cv = 0;
+    uint64_t time_passed = 0;
     while (true)
     {
-        /*
         if (!(PINB & _BV(PB4))) _sp = 500;
         if (!(PINB & _BV(PB5))) _sp = 400;
-        if (!(PINB & _BV(PB6))) _h = 4;
-        if (!(PINB & _BV(PB7))) _h = 10;
-        */
+        if (!(PINB & _BV(PB6))) _xp = 30;
+        if (!(PINB & _BV(PB7))) _xp = 40;
 
-        //sbi(ADCSRA, ADSC);
-        //while (ADCSRA & ADSC) {}
-
-        //_pv = FROM_ADC_TO_PV_UNITS(ADC);
-        //_e = _sp - _pv;
-
-        cv = 60;
-        for (int i = 0; i <= 100; i += 5)
+        sbi(ADCSRA, ADSC);
+        while (ADCSRA & ADSC)
         {
-            if (i < cv)
+            // wait for ADC conversion to end
+        }
+
+        _pv = FROM_ADC_TO_PV_UNITS(ADC);
+        _e = _sp - _pv;
+        _cv = clamp(0, (int)(100.0 / _xp * _e / 10.0 + 50.0 + 0.5), 100);
+
+        for (int i = 0; i < 100; i += 5)
+        {
+            if (i < _cv)
                 sbi(PORTC, PC0);
             else
                 cbi(PORTC, PC0);
+
+            //_delay_ms(1000 * 2 / 20);
             _delay_ms(1);
         }
 
-        //display();
+        time_passed += 20;
+        if (!(time_passed % 100))
+        {
+            //display();
+        }
+
+        display();
     }
 }
 
@@ -89,6 +97,19 @@ void display()
         dtostrf(_e / 10.0, 2, 1, floatBuffer);
     }
 
-    snprintf(buffer, sizeof(buffer), " H=%2i%%  E=%s%%", _h, floatBuffer);
+    snprintf(buffer, sizeof(buffer), "cv=%2i%%  E=%s%%", _cv, floatBuffer);
     LCD_HD44780::writeText(buffer);
+}
+
+int clamp(int min, int val, int max)
+{
+    if (val < min)
+    {
+        return min;
+    }
+    if (max < val)
+    {
+        return max;
+    }
+    return val;
 }

@@ -9,6 +9,7 @@
 #include "LCD_HD44780.h"
 
 #define FROM_ADC_TO_PV_UNITS(adc_val) ( (int)((adc_val) / 1.023 + 0.5) )
+#define CZAS_OKRESU_MSEC 20000
 
 int _sp = 600; // (0, 1000)
 int _pv = 600; // (0, 1000)
@@ -36,7 +37,6 @@ int main()
 
     LCD_HD44780::init();
 
-    uint64_t time_passed = 0;
     while (true)
     {
         if (!(PINB & _BV(PB4))) _sp = 500;
@@ -61,14 +61,7 @@ int main()
             else
                 cbi(PORTC, PC0);
 
-            //_delay_ms(1000 * 2 / 20);
-            _delay_ms(1);
-        }
-
-        time_passed += 20;
-        if (!(time_passed % 100))
-        {
-            //display();
+            _delay_ms(CZAS_OKRESU_MSEC / (100.0 / 5));
         }
 
         display();
@@ -97,7 +90,7 @@ void display()
         dtostrf(_e / 10.0, 2, 1, floatBuffer);
     }
 
-    snprintf(buffer, sizeof(buffer), "cv=%2i%%  E=%s%%", _cv, floatBuffer);
+    snprintf(buffer, sizeof(buffer), "XP=%2i%%  E=%s%%", _xp, floatBuffer);
     LCD_HD44780::writeText(buffer);
 }
 

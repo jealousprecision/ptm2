@@ -9,7 +9,7 @@
 #include "LCD_HD44780.h"
 
 #define FROM_ADC_TO_PV_UNITS(adc_val) ( (int)((adc_val) / 1.023 + 0.5) )
-#define CZAS_OKRESU_MSEC 20000
+#define CZAS_OKRESU_MSEC 200
 
 int _sp = 600; // (0, 1000)
 int _pv = 600; // (0, 1000)
@@ -75,19 +75,23 @@ void display()
 
     LCD_HD44780::clear();
 
-    dtostrf(_pv / 10.0, 2, 1, floatBuffer);
+    dtostrf(_pv / 10.0, 4, 1, floatBuffer);
     snprintf(buffer, sizeof(buffer), "SP=%2i%%  PV=%s%%", _sp / 10, floatBuffer);
     LCD_HD44780::writeText(buffer);
 
     LCD_HD44780::goTo(0, 1);
+
+    dtostrf(_e / 10.0, 5, 1, floatBuffer);
     if (_e >= 0)
     {
-        floatBuffer[0] = '+';
-        dtostrf(_e / 10.0, 2, 1, floatBuffer + 1);
-    }
-    else
-    {
-        dtostrf(_e / 10.0, 2, 1, floatBuffer);
+        if (floatBuffer[1] == ' ')
+        {
+            floatBuffer[1] = '+';
+        }
+        else
+        {
+            floatBuffer[0] = '+';
+        }
     }
 
     snprintf(buffer, sizeof(buffer), "XP=%2i%%  E=%s%%", _xp, floatBuffer);
